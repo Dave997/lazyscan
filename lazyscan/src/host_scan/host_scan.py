@@ -50,15 +50,20 @@ def main_menu():
             
         #== SET HOST ==#
         elif command.split(" ")[0] == "host":  
-            os.system("echo \"$(date +\"%H:%M:%S\") Ping " + command.split(" ")[1] + " to check availability\" >> $host_scan_log")
-            
-            HOST_UP  = True if os.system("ping -c 1 " + command.split(" ")[1] + " > /dev/null") is 0 else False
-            if HOST_UP:
-                host = str(command.split(" ")[1])
-                os.system("echo \"$(date +\"%H:%M:%S\") Host setted " + str(host) + " \" >> $host_scan_log")
-            else:
-                print("Host unreachable!")
-                os.system("echo \"$(date +\"%H:%M:%S\") Host unreachable, not setted!\" >> $host_scan_log")
+            try:
+                host_tmp = str(command.split(" ")[1])
+                os.system("echo \"$(date +\"%H:%M:%S\") Ping " + host_tmp + " to check availability\" >> $host_scan_log")
+                
+                HOST_UP  = True if os.system("ping -c 1 " + host_tmp + " > /dev/null") is 0 else False
+                if HOST_UP:
+                    host = str(command.split(" ")[1])
+                    os.system("echo \"$(date +\"%H:%M:%S\") Host setted " + str(host) + " \" >> $host_scan_log")
+                else:
+                    print("Host unreachable!")
+                    print("N.B The host address must not contain 'http://' or 'https://'")
+                    os.system("echo \"$(date +\"%H:%M:%S\") Host unreachable, not setted!\" >> $host_scan_log")
+            except:
+                print("Wrong syntax!") 
             
         #== VERBOSE ==#
         elif command.split(" ")[0] == "v":       

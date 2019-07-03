@@ -31,8 +31,6 @@ success() { \
 ##===================##
 
 clear
-
-cur_path=$(pwd)
 cd /opt/lazyscan
 
 # export folder variables 
@@ -138,7 +136,6 @@ while :; do
                 y|yes) 
                     echo "Goodbye!"
                     echo "\n\n$(date +"%H:%M:%S") Application ended!" >> $lazyscan_log
-                    cd $cur_path
                     exit 0
                     ;;
                 *)  

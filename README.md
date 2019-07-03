@@ -26,6 +26,13 @@ N.B. In some cases, if the user does not have many privileges, it must be launch
 
 ## Installation
 
+Supported OS:
+* Ubuntu
+* Debian
+* Fedora<sup>[1]</sup>
+* Kali Linux
+* Parrot OS
+
 1. Clone the repo: `git clone https://github.com/Dave997/lazyscan.git`
 2. Move into the repo's foler: `cd lazyscan`
 3. Make the installer executable: `chmod +x install.sh`
@@ -37,13 +44,12 @@ If the installation gets stuck on this line:
 
  `[-] Nothing here (/usr/share/exploitdb-papers). Starting fresh...`
 
-(or something related to "exploitdb"), comment the following line in the install.sh: `searchsploit -u`
-
-N.B. For **Fedora** users, it might be required a manual installation of some tools, because they aren't present in the DNF repositories.
-(ex. wfuzz --> pip3 install wfuzz)
+(or something related to "exploitdb"), comment the following line in the install.sh: `searchsploit -u`.
 
 This installation downloads many different packages and tools, so if you don't need them daily it is preferable use it on Kali or Parrot.
 
+<sup>[1]</sup> For **Fedora** users, it might be required a manual installation of some tools, because they aren't present in the DNF repositories.
+(ex. wfuzz --> pip3 install wfuzz)
 
 ## Configure destination folders and files
 The configuration files (outside the scanners folder) are nothing more than a list of variables (ex: `result_folder=$base_output_folder"/results"`) 

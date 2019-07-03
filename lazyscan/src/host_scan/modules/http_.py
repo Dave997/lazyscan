@@ -22,7 +22,7 @@ host = sys.argv[1]
 http_info = json.loads(sys.argv[2])
 verbose = bool(sys.argv[3])
 
-if "http://" not in host:
+if "http://" not in host and "https://" not in host:
     host = "http://" + host
 
 print("\n\033[1mScanning HTTP protocol on  " + host + "...\033[0m")
@@ -150,47 +150,45 @@ try:
     tech_json = os.environ['tech_json']
     with open(tech_json) as json_file:  
         wad_out = json.load(json_file)
-except:
-    print(" [-] Error parsing wad json file")
+        
+    if len(wad_out) > 0:
+        for x in wad_out[list(wad_out.keys())[0]]:
+            if "cms" in x['type']:
+                cms = x['app']
+                if verbose:
+                    print (cms + " found!")
 
-if len(wad_out) > 0:
-    for x in wad_out[host]:
-        if "cms" in x['type']:
-            cms = x['type']
+        if len(str(cms)) > 0:
+            os.system("echo '** Scanning " + cms + ": \n' >> $cms_scan_log")
             if verbose:
-                print (cms + " found!")
+                print("\nScanning " + cms + "...")
 
-    if len(str(cms)) > 0:
-        os.system("echo '** Scanning " + cms + ": \n' >> $cms_scan_log")
-        if verbose:
-            print("\nScanning " + cms + "...")
-
-        if cms.lower() == "wordpress":
-            os.system("echo \"\t\t$(date +\"%H:%M:%S\") WPscan started\" >> $host_scan_log")
-            # https://wpscan.org/
-            cmd = "wpscan --url " + host + " -f json"
-            if verbose:
-                os.system(cmd + " | tee $cms_out | tee -a $cms_scan_log")
+            if cms.lower() == "wordpress":
+                os.system("echo \"\t\t$(date +\"%H:%M:%S\") WPscan started\" >> $host_scan_log")
+                # https://wpscan.org/
+                cmd = "wpscan --url " + host + " -f json"
+                if verbose:
+                    os.system(cmd + " | tee $cms_out | tee -a $cms_scan_log")
+                else:
+                    os.system(cmd + " | tee $cms_out >> $cms_scan_log")
+                os.system("echo \"\t\t$(date +\"%H:%M:%S\") WPscan finished\" >> $host_scan_log")
+            elif cms.lower() == "joomla":
+                os.system("echo \"\t\t$(date +\"%H:%M:%S\") Joomscan started\" >> $host_scan_log")
+                # https://tools.kali.org/web-applications/joomscan
+                cmd = "perl /opt/joomscan/joomscan.pl --url " + host
+                if verbose:
+                    os.system(cmd + " | tee $cms_out | tee -a $cms_scan_log") 
+                else:
+                    os.system(cmd + " | tee $cms_out >> $cms_scan_log")
+                os.system("echo \"\t\t$(date +\"%H:%M:%S\") Joomscan finished\" >> $host_scan_log")
             else:
-                os.system(cmd + " | tee $cms_out >> $cms_scan_log")
-            os.system("echo \"\t\t$(date +\"%H:%M:%S\") WPscan finished\" >> $host_scan_log")
-        elif cms.lower() == "joomla":
-            os.system("echo \"\t\t$(date +\"%H:%M:%S\") Joomscan started\" >> $host_scan_log")
-            # https://tools.kali.org/web-applications/joomscan
-            cmd = "perl /opt/joomscan/joomscan.pl --url " + host
-            if verbose:
-                os.system(cmd + " | tee $cms_out | tee -a $cms_scan_log") 
-            else:
-                os.system(cmd + " | tee $cms_out >> $cms_scan_log")
-            os.system("echo \"\t\t$(date +\"%H:%M:%S\") Joomscan finished\" >> $host_scan_log")
-        #elif cms.lower() == "drupal":
-        #    # https://pypi.org/project/droopescan/
-        #    cmd = "droopescan scan -u " + host
-        #    os.system(cmd + " | tee " + cms_out + " | tee -a " + logfile)    (ノಠ益ಠ)ノ彡┻━┻
+                print("\t[-] CMS not recognized!")
         else:
-            print("\t[-] CMS not recognized!")
+            print("\t[-] No cms detected")
     else:
-        print("\t[-] No cms detected")
+            print("\t[-] No cms recognized")
+except:
+    print(" [-] Error parsing wad json file for cms scan")
 
 #---------------
 
@@ -232,69 +230,71 @@ os.system("echo \"\t\t$(date +\"%H:%M:%S\") Aquatone finished\" >> $host_scan_lo
 #scan each page 
 print("\nScanning single pages found...")
 
-for page in pages:
-    results_folder_pages = os.environ['result_host_scan_folder_http_pages']
-    result_file = results_folder_pages + "/" + page.replace("/","-") + ".md"
-    os.system("touch " + result_file)
-    print("Scanning " + page)
-    
-    # web-reconnaissance
-    os.system("echo \"\t\t$(date +\"%H:%M:%S\") Web-recon started on " + page + "\" >> $host_scan_log")
-    try:
-        cmd = "python web-reconnaissance.py -u " + page + " -o " + result_file
-        os.system("echo 'web-reconnaissance.py launched on " + page + "' >> $web_recon_log")
-        sp = subprocess.Popen(['python2', './src/host_scan/modules/web-reconnaissance.py', "-u", str(page), "-o", str(result_file)],
-                                shell=False,
-                                stdin=subprocess.PIPE,
-                                stdout=subprocess.PIPE,
-                                stderr=subprocess.PIPE
-                                )
-        sp.communicate()
-        print("\t[+] web-reconnaissance done!")
-    except:
-        print("\t[-] web-reconnaissance went wrong!")
-    os.system("echo \"\t\t$(date +\"%H:%M:%S\") Web-recon finished\" >> $host_scan_log")
-    
-    # xss scan
-    os.system("echo \"\t\t$(date +\"%H:%M:%S\") xsser started on " + page + "\" >> $host_scan_log")
-    try:
-        cmd = "xsser -u " + page
-        os.system("echo 'xsser launched on " + page + "' >> $xss_log")
-        os.system("echo '\n<br>' >> " + result_file)
-        os.system("echo '# XSS SCAN\n\n' >> " + result_file)
-        os.system("echo '``` bash\n' >> " + result_file)
-        os.system(cmd + " > /tmp/xsser.log")
-        os.system("cat /tmp/xsser.log >> " + result_file)
-        os.system("cat /tmp/xsser.log >> $xss_log")
-        os.system("echo '\n```\n\n' >> " + result_file)
-        print("\t[+] xss scan done!")
-    except:
-        print("\t[-] xss scan went wrong!")
-    os.system("echo \"\t\t$(date +\"%H:%M:%S\") xsser finished\" >> $host_scan_log")    
-    
-    # SQLi
-    os.system("echo \"\t\t$(date +\"%H:%M:%S\") SQLmap started on " + page + "\" >> $host_scan_log")
-    try:
-        response = requests.get(page)
-        soup = BeautifulSoup(response.text, 'html.parser')
-
-        for element in soup.find_all('input'):
-            name = element['name']     
-            os.system("echo 'sqlmap launched on " + page + "' >> $sqli_log")
+for page in pages:  
+    try:   
+        results_folder_pages = os.environ['result_host_scan_folder_http_pages']
+        result_file = results_folder_pages + "/" + page.replace("/","-") + ".md"
+        os.system("touch " + result_file)
+        print("Scanning " + page)
+        
+        # web-reconnaissance
+        os.system("echo \"\t\t$(date +\"%H:%M:%S\") Web-recon started on " + page + "\" >> $host_scan_log")
+        try:
+            cmd = "python web-reconnaissance.py -u " + page + " -o " + result_file
+            os.system("echo 'web-reconnaissance.py launched on " + page + "' >> $web_recon_log")
+            sp = subprocess.Popen(['python2', './src/host_scan/modules/web-reconnaissance.py', "-u", str(page), "-o", str(result_file)],
+                                    shell=False,
+                                    stdout=subprocess.PIPE,
+                                    stderr=subprocess.PIPE
+                                    )
+            sp.communicate()
+            print("\t[+] web-reconnaissance done!")
+        except:
+            print("\t[-] web-reconnaissance went wrong!")
+        os.system("echo \"\t\t$(date +\"%H:%M:%S\") Web-recon finished\" >> $host_scan_log")
+        
+        # xss scan
+        os.system("echo \"\t\t$(date +\"%H:%M:%S\") xsser started on " + page + "\" >> $host_scan_log")
+        try:
+            cmd = "xsser -u " + page
+            os.system("echo 'xsser launched on " + page + "' >> $xss_log")
             os.system("echo '\n<br>' >> " + result_file)
-            os.system("echo '# SQLi SCAN\n\n' >> " + result_file)
-            os.system("Testing parameter `" + name + "`:")
+            os.system("echo '# XSS SCAN\n\n' >> " + result_file)
             os.system("echo '``` bash\n' >> " + result_file)
-            cmd = "sqlmap -u '" + page + "' --dbs --tables --data='" + name + "=asdf' --batch -v 0 > /tmp/sqli.log"
-            os.system(cmd)
-            os.system("cat /tmp/sqli.log >> " + result_file)
-            os.system("cat /tmp/sqli.log >> $sqli_log")
+            os.system(cmd + " > /tmp/xsser.log")
+            os.system("cat /tmp/xsser.log >> " + result_file)
+            os.system("cat /tmp/xsser.log >> $xss_log")
             os.system("echo '\n```\n\n' >> " + result_file)
-            
-        print("\t[+] SQLi scan done!")
-    except:
-        print("\t[-] SQLi scan went wrong!")
-    os.system("echo \"\t\t$(date +\"%H:%M:%S\") SQLmap finished\" >> $host_scan_log")
+            print("\t[+] xss scan done!")
+        except:
+            print("\t[-] xss scan went wrong!")
+        os.system("echo \"\t\t$(date +\"%H:%M:%S\") xsser finished\" >> $host_scan_log")    
+        
+        # SQLi
+        os.system("echo \"\t\t$(date +\"%H:%M:%S\") SQLmap started on " + page + "\" >> $host_scan_log")
+        try:
+            response = requests.get(page)
+            soup = BeautifulSoup(response.text, 'html.parser')
+
+            for element in soup.find_all('input'):
+                name = element['name']     
+                os.system("echo 'sqlmap launched on " + page + "' >> $sqli_log")
+                os.system("echo '\n<br>' >> " + result_file)
+                os.system("echo '# SQLi SCAN\n\n' >> " + result_file)
+                os.system("Testing parameter `" + name + "`:")
+                os.system("echo '``` bash\n' >> " + result_file)
+                cmd = "sqlmap -u '" + page + "' --dbs --tables --data='" + name + "=asdf' --batch -v 0 > /tmp/sqli.log"
+                os.system(cmd)
+                os.system("cat /tmp/sqli.log >> " + result_file)
+                os.system("cat /tmp/sqli.log >> $sqli_log")
+                os.system("echo '\n```\n\n' >> " + result_file)
+                
+            print("\t[+] SQLi scan done!")
+        except:
+            print("\t[-] SQLi scan went wrong!")
+        os.system("echo \"\t\t$(date +\"%H:%M:%S\") SQLmap finished\" >> $host_scan_log")
+    except KeyboardInterrupt:
+        break
 #---------------
 
 # custom commands 
